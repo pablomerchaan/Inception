@@ -1,0 +1,16 @@
+# subject
+en.subject.pdf
+
+# secrets (real values never go to git)
+secrets/*.txt
+!secrets/*.example
+
+# environment variables
+srcs/.env
+
+# just in case anything ever gets bind-mounted inside the repo
+data/
+
+# OS / editor
+.DS_Store
+*.swp
