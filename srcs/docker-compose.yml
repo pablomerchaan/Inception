@@ -26,6 +26,7 @@ services:
     secrets:
       - db_password
       - credentials
+      - wp_user_password
     volumes:
       - wp_data:/var/www/html
     networks:
@@ -33,7 +34,6 @@ services:
     depends_on:
       - mariadb
     restart: unless-stopped
-    # TODO (Dia 3): escribir requirements/wordpress/Dockerfile + tools/entrypoint.sh
 
   nginx:
     build:
@@ -63,13 +63,13 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/paperez-/data/mariadb
+      device: ${DATA_DIR:-/home/paperez-/data}/mariadb
   wp_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/paperez-/data/wordpress
+      device: ${DATA_DIR:-/home/paperez-/data}/wordpress
 
 secrets:
   db_password:
@@ -78,3 +78,5 @@ secrets:
     file: ../secrets/db_root_password.txt
   credentials:
     file: ../secrets/credentials.txt
+  wp_user_password:
+    file: ../secrets/wp_user_password.txt

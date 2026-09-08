@@ -1,11 +1,18 @@
-# TODO (Dia 2)
-# - FROM debian:<penultima_stable>-slim  (o alpine:<penultima_stable>) -- NUNCA :latest
-# - instalar mariadb-server
-# - COPY conf/ y tools/entrypoint.sh
-# - el entrypoint debe:
-#     * inicializar el datadir si esta vacio
-#     * crear la base de datos (MYSQL_DATABASE) y dos usuarios (MYSQL_USER + otro)
-#     * leer las contrasenas de /run/secrets/db_password y /run/secrets/db_root_password
-#       (NUNCA como valor literal en este Dockerfile)
-# - CMD/ENTRYPOINT debe arrancar mariadbd en foreground (proceso PID 1), sin
-#   tail -f / sleep infinity / while true / bash a secas
+FROM debian:bookworm-slim
+
+# El postinst de mariadb-server ya deja un datadir inicializado en /var/lib/mysql
+# durante el build; hay que vaciarlo para que el volumen empiece realmente vacio
+# y sea el entrypoint quien decida cuando inicializar (si no, el "copy-up" de
+# Docker copia ese contenido horneado al volumen y el entrypoint nunca hace bootstrap).
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends mariadb-server && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm -rf /var/lib/mysql/*
+
+COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+EXPOSE 3306
+
+ENTRYPOINT ["entrypoint.sh"]

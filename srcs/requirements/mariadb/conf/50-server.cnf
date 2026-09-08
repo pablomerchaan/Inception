@@ -1,0 +1,7 @@
+[mysqld]
+# Escuchar en todas las interfaces: por defecto Debian solo escucha en
+# 127.0.0.1, pero WordPress se conecta desde otro contenedor de la red
+# "inception", no desde localhost.
+bind-address = 0.0.0.0
+
+datadir = /var/lib/mysql
