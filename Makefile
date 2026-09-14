@@ -1,7 +1,7 @@
 NAME		= inception
 LOGIN		= paperez-
 DATA_DIR	= /home/$(LOGIN)/data
-COMPOSE		= docker compose -f srcs/docker-compose.yml
+COMPOSE		= DATA_DIR=$(DATA_DIR) docker compose -f srcs/docker-compose.yml -p $(NAME)
 
 .PHONY: all up build down stop clean fclean re prepare
 
@@ -22,14 +22,19 @@ down:
 stop:
 	$(COMPOSE) stop
 
-# removes containers/networks, keeps volumes and data on disk
-clean: down
-	docker system prune -f
+# quita contenedores, red e imagenes de este proyecto; conserva volumenes y datos
+clean:
+	$(COMPOSE) down --rmi all
 
-# removes everything, including volumes, images and the data on disk
-fclean: down
+# limpieza total: tambien volumenes y los datos reales en $(DATA_DIR).
+# Esos ficheros quedan con dueno mysql/www-data (el UID que usa el contenedor),
+# por eso se borran desde un contenedor efimero en vez de un "rm -rf" directo,
+# que fallaria por permisos sin sudo.
+fclean:
 	$(COMPOSE) down -v --rmi all
-	docker system prune -af
-	sudo rm -rf $(DATA_DIR)
+	@if [ -d "$(DATA_DIR)" ]; then \
+		docker run --rm -v $(DATA_DIR):/data debian:bookworm-slim \
+			bash -c "rm -rf /data/mariadb /data/wordpress"; \
+	fi
 
 re: fclean up

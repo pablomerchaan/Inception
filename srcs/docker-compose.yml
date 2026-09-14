@@ -14,7 +14,12 @@ services:
     networks:
       - inception
     restart: unless-stopped
-    # TODO (Dia 2): escribir requirements/mariadb/Dockerfile + tools/entrypoint.sh
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   wordpress:
     build:
@@ -32,8 +37,17 @@ services:
     networks:
       - inception
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      # wp-config.php solo existe una vez terminado el "wp core install" del
+      # entrypoint; el TCP a 9000 confirma que php-fpm ya esta escuchando.
+      test: ["CMD", "bash", "-c", "test -f /var/www/html/wp-config.php && exec 3<>/dev/tcp/127.0.0.1/9000"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
 
   nginx:
     build:
@@ -49,9 +63,15 @@ services:
     networks:
       - inception
     depends_on:
-      - wordpress
+      wordpress:
+        condition: service_healthy
     restart: unless-stopped
-    # TODO (Dia 7): escribir requirements/nginx/Dockerfile + conf/nginx.conf (TLSv1.2/1.3 only)
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/443"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
 networks:
   inception:
